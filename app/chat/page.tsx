@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { ChevronLeft, Send } from "lucide-react";
 import Link from "next/link";
-
-export const dynamic = "force-dynamic";
 
 interface Message {
   id: string;
@@ -15,16 +12,19 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const supabaseRef = useRef<any>(null);
 
   useEffect(() => {
     const initChat = async () => {
       try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        supabaseRef.current = supabase;
         const user = await supabase.auth.getUser();
         if (!user.data.user) return;
 
@@ -65,7 +65,7 @@ export default function ChatPage() {
     };
 
     initChat();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +80,9 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      const supabase = supabaseRef.current;
+      if (!supabase) throw new Error("Supabase not initialized");
+
       // Add user message
       const { data: userMsg } = await supabase
         .from("messages")
